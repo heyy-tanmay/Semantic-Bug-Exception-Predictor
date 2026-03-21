@@ -1,0 +1,399 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Semantic Bug & Exception Predictor</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+            max-width: 800px;
+            width: 100%;
+            padding: 40px;
+        }
+
+        h1 {
+            color: #333;
+            margin-bottom: 10px;
+            text-align: center;
+        }
+
+        .subtitle {
+            text-align: center;
+            color: #666;
+            margin-bottom: 30px;
+            font-size: 14px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            color: #333;
+            font-weight: 600;
+        }
+
+        textarea {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 5px;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+            resize: vertical;
+            min-height: 180px;
+            transition: border-color 0.3s;
+        }
+
+        textarea:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        button {
+            flex: 1;
+            padding: 12px 20px;
+            border: none;
+            border-radius: 5px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .predict-btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .predict-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .predict-btn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .clear-btn {
+            background: #f0f0f0;
+            color: #333;
+        }
+
+        .clear-btn:hover {
+            background: #e0e0e0;
+        }
+
+        .result-box {
+            margin-top: 30px;
+            padding: 20px;
+            border-radius: 5px;
+            display: none;
+            background: #f9f9f9;
+            border-left: 4px solid #667eea;
+        }
+
+        .result-box.buggy {
+            background: #ffe6e6;
+            border-left-color: #d32f2f;
+        }
+
+        .result-box.clean {
+            background: #e6ffe6;
+            border-left-color: #388e3c;
+        }
+
+        .result-box.error {
+            background: #fff3e0;
+            border-left-color: #f57c00;
+        }
+
+        .result-title {
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 12px;
+            color: #333;
+        }
+
+        .result-item {
+            margin: 8px 0;
+            font-size: 14px;
+        }
+
+        .result-label {
+            font-weight: 600;
+            color: #555;
+        }
+
+        .result-value {
+            color: #333;
+            margin-left: 5px;
+        }
+
+        .bug-badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            margin-left: 10px;
+        }
+
+        .bug-badge.buggy {
+            background: #d32f2f;
+            color: white;
+        }
+
+        .bug-badge.clean {
+            background: #388e3c;
+            color: white;
+        }
+
+        .confidence-bar {
+            width: 100%;
+            height: 20px;
+            background: #e0e0e0;
+            border-radius: 10px;
+            overflow: hidden;
+            margin-top: 5px;
+        }
+
+        .confidence-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #667eea, #764ba2);
+            transition: width 0.5s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 11px;
+            font-weight: 600;
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            margin-top: 20px;
+        }
+
+        .spinner {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .loading-text {
+            margin-top: 10px;
+            color: #667eea;
+            font-size: 14px;
+        }
+
+        .examples {
+            margin-top: 30px;
+            padding-top: 20px;
+            border-top: 2px solid #e0e0e0;
+        }
+
+        .examples-title {
+            font-weight: 600;
+            margin-bottom: 10px;
+            color: #333;
+        }
+
+        .example-btn {
+            display: inline-block;
+            padding: 8px 12px;
+            margin: 5px 5px 5px 0;
+            background: #f0f0f0;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 12px;
+            transition: all 0.3s;
+        }
+
+        .example-btn:hover {
+            background: #e0e0e0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔍 Semantic Bug & Exception Predictor</h1>
+        <p class="subtitle">AI-powered C/Java code analysis using CodeBERT</p>
+
+        <form id="predictForm">
+            <div class="form-group">
+                <label for="codeInput">Paste your C or Java code here:</label>
+                <textarea id="codeInput" placeholder="int *p = NULL; printf(&quot;%d&quot;, *p); // Null pointer dereference!" required></textarea>
+            </div>
+
+            <div class="button-group">
+                <button type="submit" class="predict-btn" id="predictBtn">Analyze Code</button>
+                <button type="button" class="clear-btn" id="clearBtn">Clear</button>
+            </div>
+        </form>
+
+        <div class="loading" id="loading">
+            <div class="spinner"></div>
+            <div class="loading-text">Analyzing code...</div>
+        </div>
+
+        <div class="result-box" id="resultBox">
+            <div class="result-title" id="resultTitle"></div>
+            <div class="result-item">
+                <span class="result-label">Bug Detected:</span>
+                <span class="result-value" id="bugDetected"></span>
+            </div>
+            <div class="result-item">
+                <span class="result-label">Confidence:</span>
+                <div class="confidence-bar">
+                    <div class="confidence-fill" id="confidenceFill" style="width: 0%;"></div>
+                </div>
+            </div>
+            <div class="result-item">
+                <span class="result-label">Likely Issue:</span>
+                <span class="result-value" id="likelyIssue"></span>
+            </div>
+        </div>
+
+        <div class="examples">
+            <div class="examples-title">📝 Quick Examples:</div>
+            <button type="button" class="example-btn" onclick="loadExample(0)">Java Null Pointer</button>
+            <button type="button" class="example-btn" onclick="loadExample(1)">C Segfault</button>
+            <button type="button" class="example-btn" onclick="loadExample(2)">Array Out of Bounds</button>
+            <button type="button" class="example-btn" onclick="loadExample(3)">Clean Java Code</button>
+        </div>
+    </div>
+
+    <script>
+        const API_URL = "http://127.0.0.1:8000";
+        const examples = [
+            "String s = null;\nSystem.out.println(s.length());",
+            "#include <stdio.h>\nint main(){\n  int *p = NULL;\n  printf(\"%d\", *p);\n  return 0;\n}",
+            "int arr[5];\nint x = arr[10];",
+            "public class Main {\n  public static void main(String[] args) {\n    System.out.println(\"Hello World\");\n  }\n}"
+        ];
+
+        document.getElementById("predictForm").addEventListener("submit", async (e) => {
+            e.preventDefault();
+            await predictBug();
+        });
+
+        document.getElementById("clearBtn").addEventListener("click", () => {
+            document.getElementById("codeInput").value = "";
+            document.getElementById("resultBox").style.display = "none";
+        });
+
+        function loadExample(index) {
+            document.getElementById("codeInput").value = examples[index];
+            document.getElementById("resultBox").style.display = "none";
+        }
+
+        async function predictBug() {
+            const code = document.getElementById("codeInput").value.trim();
+            if (!code) {
+                alert("Please enter some code.");
+                return;
+            }
+
+            document.getElementById("loading").style.display = "block";
+            document.getElementById("resultBox").style.display = "none";
+            document.getElementById("predictBtn").disabled = true;
+
+            try {
+                const response = await fetch(`${API_URL}/predict_bug`, {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                    },
+                    body: JSON.stringify({ code: code }),
+                });
+
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.detail || "Prediction failed");
+                }
+
+                const result = await response.json();
+                displayResult(result);
+            } catch (error) {
+                displayError(error.message);
+            } finally {
+                document.getElementById("loading").style.display = "none";
+                document.getElementById("predictBtn").disabled = false;
+            }
+        }
+
+        function displayResult(result) {
+            const resultBox = document.getElementById("resultBox");
+            const bugDetected = result.bug_detected;
+            const confidence = result.confidence_score;
+            const issue = result.likely_issue;
+
+            document.getElementById("resultTitle").textContent = bugDetected ? "⚠️ Bug Detected!" : "✅ Code Looks Clean";
+            resultBox.className = `result-box ${bugDetected ? "buggy" : "clean"}`;
+
+            const badgeText = bugDetected ? "BUGGY" : "CLEAN";
+            const badgeClass = bugDetected ? "buggy" : "clean";
+            document.getElementById("bugDetected").innerHTML = `<span class="bug-badge ${badgeClass}">${badgeText}</span>`;
+
+            const confidencePercent = Math.round(confidence * 100);
+            document.getElementById("confidenceFill").style.width = `${confidencePercent}%`;
+            document.getElementById("confidenceFill").textContent = `${confidencePercent}%`;
+
+            document.getElementById("likelyIssue").textContent = issue;
+
+            resultBox.style.display = "block";
+        }
+
+        function displayError(message) {
+            const resultBox = document.getElementById("resultBox");
+            resultBox.className = "result-box error";
+            document.getElementById("resultTitle").textContent = "❌ Error";
+            document.getElementById("bugDetected").textContent = message;
+            document.getElementById("confidenceFill").style.width = "0%";
+            document.getElementById("likelyIssue").textContent = "";
+            resultBox.style.display = "block";
+        }
+    </script>
+</body>
+</html>
